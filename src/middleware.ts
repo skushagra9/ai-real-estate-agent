@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { edgeAuth } from "@/lib/auth.config";
 
 /**
- * Middleware runs in the Edge runtime and must not import @/lib/auth
- * (that would pull in Prisma/bcrypt and Node's crypto).
- * We use getToken from next-auth/jwt to read the session and enforce role-based redirects.
+ * Auth.js v5: use auth() so the session is read with the v5 cookie (authjs.session-token).
+ * getToken from next-auth/jwt expected the v4 cookie name → session was always null in prod.
  */
-export async function middleware(req: NextRequest) {
+export default edgeAuth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Public routes — no auth check
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
@@ -21,27 +18,20 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({
-    req,
-    secret: process.env.AUTH_SECRET,
-  });
-
-  if (!token?.sub) {
+  if (!req.auth?.user) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  const role = token.role as string | undefined;
-
+  const role = (req.auth.user as { role?: string }).role;
   if (pathname.startsWith("/admin") && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/partner/dashboard", req.url));
   }
-
   if (pathname.startsWith("/partner") && role !== "PARTNER") {
     return NextResponse.redirect(new URL("/admin/dashboard", req.url));
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|public).*)"],

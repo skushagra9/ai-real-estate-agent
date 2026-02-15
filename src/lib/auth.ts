@@ -2,9 +2,10 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  trustHost: true, // required on Vercel/proxy: use request Host for cookies and redirects when NEXTAUTH_URL is unset
+  ...authConfig,
   providers: [
     Credentials({
       name: "credentials",
@@ -63,47 +64,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    redirect({ url, baseUrl }) {
-      // Never redirect back to login after sign-in (avoids callbackUrl defaulting to current page).
-      const resolved = url.startsWith("/") ? `${baseUrl}${url}` : url;
-      if (resolved.includes("/login") || resolved.includes("/signin")) return `${baseUrl}/`;
-      if (new URL(resolved).origin === baseUrl) return resolved;
-      return `${baseUrl}/`;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        const u = user as { role?: "ADMIN" | "PARTNER"; partnerId?: string | null };
-        if (u.role) token.role = u.role;
-        token.partnerId = u.partnerId ?? null;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub as string;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (session.user as any).role = token.role;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (session.user as any).partnerId = token.partnerId;
-      }
-      return session;
-    },
-  },
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  cookies: {
-    sessionToken: {
-      options: {
-        path: "/",
-        sameSite: "lax",
-        // Do not set domain so the cookie is for the exact request host (fixes prod behind proxy).
-      },
-    },
-  },
+  // callbacks (jwt, session, redirect) and cookies come from auth.config
 });
