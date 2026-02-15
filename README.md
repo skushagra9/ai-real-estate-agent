@@ -45,7 +45,7 @@ A full-stack platform for managing commercial loan referrals between **partners*
 
 ```bash
 # 1. Clone and install
-git clone <repo-url>
+git clone https://github.com/skushagra9/ai-real-estate-agent
 cd ai-real-estate-agent
 pnpm install
 
@@ -145,7 +145,6 @@ Use these to test all flows **without signing up**. (Seeded by `pnpm run db:seed
 
 These were open questions or decisions from Phase 1 planning; documented here for the client.
 
-- **Hosting:** Phase 1 plan mentioned Neon for Postgres; **we use Railway for Postgres** and Vercel for the app. Same capabilities; Railway was chosen for this deployment.
 - **Notifications:** Phase 1 described a future “scalability phase” with a **pub/sub pipeline (e.g. Redis/RabbitMQ)** to move email off the request path. **We are not using a Redis (or other) message pipeline for this MVP.** Emails are sent synchronously after state changes. This is manageable at current scale and **not required for this basic MVP**; we can ship to production as-is and introduce a queue later if needed.
 - **Borrower emails:** Borrower gets status-link email on deal creation and can be notified on stage change / lender assigned when “Enable client tracking” is on and borrower email is set.
 - **Admin accounts:** Admin users are created via seed or manually in the DB; no public admin signup.
@@ -154,8 +153,6 @@ These were open questions or decisions from Phase 1 planning; documented here fo
 
 ## Deviations from Phase 1 Plan
 
-- **Database provider:** Plan suggested Neon; production uses **Railway** for PostgreSQL.
-- **Prisma:** Implemented with **Prisma 7** and `@prisma/adapter-pg`; datasource URL is in `prisma.config.ts`, not in `schema.prisma`.
 - **Async notifications:** No Redis/pub-sub in this build; **sync email in request path** only. Documented above under Phase 1 questions.
 - Any other small UX or routing differences from the written plan are minor and do not change scope or core flows.
 
@@ -190,9 +187,3 @@ prisma/
 - **Phase 1 scope & technical plan:** `PHASE1-PLAN.md`
 - **Architecture & flows:** `ARCHITECTURE.md`
 
----
-
-## Time Spent (Phase 2)
-
-_Optional: fill in before submission._  
-e.g. “Phase 2 build: ~X hours. Deviations and rationale are in README.”
