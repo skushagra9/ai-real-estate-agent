@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,27 +14,29 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Show error from NextAuth redirect (e.g. wrong credentials)
+  const callbackError = searchParams.get("error");
+  const displayError = error || (callbackError === "CredentialsSignin" ? "Invalid email or password" : "");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    if (result?.error) {
-      setError("Invalid email or password");
+    try {
+      // Use server redirect so the session cookie is sent on the next request.
+      // NextAuth redirects to callbackUrl="/" after success; root page then redirects by role.
+      await signIn("credentials", {
+        email,
+        password,
+        callbackUrl: "/",
+        redirect: true,
+      });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    router.push("/");
-    router.refresh();
   }
 
   return (
@@ -46,9 +48,9 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
+            {displayError && (
               <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md">
-                {error}
+                {displayError}
               </div>
             )}
             <div className="space-y-2">

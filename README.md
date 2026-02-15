@@ -90,7 +90,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - Import the GitHub repo.
 - **Build command:** `pnpm build` (or `npm run build`). The build script runs `prisma generate`, then `prisma migrate deploy` (so migrations apply to your production DB on every deploy), then `next build`.
 - **Output:** Next.js default (`.next`).
-- **Environment variables:** Add all variables above. Set `NEXTAUTH_URL` to your Vercel deployment URL (e.g. `https://your-app.vercel.app`). Ensure `DATABASE_URL` is set (e.g. from Railway).
+- **Environment variables:** Add all variables above. Set `NEXTAUTH_URL` to your **exact** live URL (e.g. `https://your-app.vercel.app`) so login redirects and session cookies work. Ensure `DATABASE_URL` is set (e.g. from Railway).
 - **Optional:** Run seed once for demo users and sample data (after first successful deploy):
   ```bash
   DATABASE_URL="<railway-postgres-url>" pnpm run db:seed
