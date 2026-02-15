@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   const callbackError = searchParams.get("error");
@@ -31,12 +33,33 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      await signIn("credentials", {
+      const result = await signIn("credentials", {
         email,
         password,
-        callbackUrl: "/",
-        redirect: true,
+        redirect: false,
       });
+
+      if (result?.error) {
+        setError("Invalid email or password");
+        return;
+      }
+
+      if (result?.ok) {
+        let session = await getSession();
+        if (!session?.user?.role) {
+          await new Promise((r) => setTimeout(r, 100));
+          session = await getSession();
+        }
+        const role = session?.user?.role;
+        const destination =
+          role === "ADMIN"
+            ? "/admin/dashboard"
+            : role === "PARTNER"
+              ? "/partner/dashboard"
+              : "/";
+        window.location.href = destination;
+        return;
+      }
     } finally {
       setLoading(false);
     }

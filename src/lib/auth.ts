@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true, // required on Vercel/proxy: use request Host for cookies and redirects when NEXTAUTH_URL is unset
   providers: [
     Credentials({
       name: "credentials",

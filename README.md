@@ -72,7 +72,7 @@ Open [http://localhost:3000](http://localhost:3000).
 |----------|----------|--------------|-------------|
 | `DATABASE_URL` | Yes | Railway (Postgres) → Vercel | PostgreSQL connection URL |
 | `AUTH_SECRET` | Yes | Vercel | NextAuth secret (`openssl rand -base64 32`) |
-| `NEXTAUTH_URL` | Yes (prod) | Vercel | **Must be the exact URL users visit** (e.g. `https://agent-aggregator.site.skushagra.in` or `https://your-app.vercel.app`). Used for redirects and session cookies; if it doesn’t match the browser URL, login will redirect back to `/login`. |
+| `NEXTAUTH_URL` | Local only | .env | **Set to `http://localhost:3000` for local dev.** In Vercel production **do not set** (leave it unset). When unset, NextAuth uses the request host so the session cookie matches the URL you’re on—login then works from your custom domain and from any preview URL. If you set it in prod, it must exactly match the single URL users visit. |
 | `RESEND_API_KEY` | No | Vercel | Resend API key; if missing, emails are skipped |
 | `RESEND_FROM_ADDRESS` | No | Vercel | Sender for emails (e.g. `LoanFlow <noreply@yourdomain.com>`) |
 | `EMAIL_APP_URL` | No | Vercel | Public URL for links in emails (recommended in prod) |
@@ -90,7 +90,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - Import the GitHub repo.
 - **Build command:** `pnpm build` (or `npm run build`). The build script runs `prisma generate`, then `prisma migrate deploy` (so migrations apply to your production DB on every deploy), then `next build`.
 - **Output:** Next.js default (`.next`).
-- **Environment variables:** Add all variables above. Set `NEXTAUTH_URL` to your **exact** live URL (e.g. `https://your-app.vercel.app`) so login redirects and session cookies work. Ensure `DATABASE_URL` is set (e.g. from Railway).
+- **Environment variables:** Add `DATABASE_URL` (from Railway), `AUTH_SECRET`, and the rest. **Do not set `NEXTAUTH_URL` in Vercel** so the app uses the request host and login works from your custom domain and preview URLs. Use `NEXTAUTH_URL` only in local `.env` (`http://localhost:3000`).
 - **Optional:** Run seed once for demo users and sample data (after first successful deploy):
   ```bash
   DATABASE_URL="<railway-postgres-url>" pnpm run db:seed
@@ -98,39 +98,23 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## Troubleshooting: “After login I’m sent back to the login page”
+## Troubleshooting: "After login I'm sent back to the login page" (works locally, fails in prod)
 
-Two common causes:
+**Why:** Locally you always use `http://localhost:3000`, so the session cookie is for that host. In prod, if `NEXTAUTH_URL` is set to one URL (e.g. Vercel) but you open the app at another (e.g. custom domain), the cookie is set for `NEXTAUTH_URL`'s domain and the browser won't send it on your actual URL, so you appear logged out.
 
-1. **Wrong or missing `NEXTAUTH_URL`**  
-   NextAuth uses `NEXTAUTH_URL` as the app’s canonical URL. It’s used for:
-   - **Redirects** after sign-in (e.g. to `/` then dashboard).
-   - **Session cookie** (domain/path). If the cookie is set for a different host than the one you’re visiting, the browser won’t send it, so the app sees no session and shows login again.
+**Solid fix:**
 
-   **Fix:** In Vercel → Project → Settings → Environment Variables, set `NEXTAUTH_URL` to the **exact** URL people use to open the app (no trailing slash), e.g. `https://agent-aggregator.site.skushagra.in`. If you use a custom domain, use that; if you use the default Vercel URL, use that. Redeploy after changing.
+1. **In Vercel, remove `NEXTAUTH_URL`** (delete it from Environment Variables if present). When `NEXTAUTH_URL` is **not set**, NextAuth uses the **request host** for the session cookie. The app sets **`trustHost: true`** so that behind Vercel's proxy the correct host (and thus cookie domain) is used—login then works from your custom domain and preview URLs. Keep `NEXTAUTH_URL` only in **local** `.env` as `http://localhost:3000`. Redeploy after any env or code change.
 
 2. **No users in the database**  
-   If the production DB was never seeded, there are no users to log in as.
-
-   **Fix:** Run the seed once against the production DB (same `DATABASE_URL` as in Vercel):
+   Run the seed once against the production DB (same `DATABASE_URL` as in Vercel):
    ```bash
    DATABASE_URL="<your-railway-url>" pnpm run db:seed
    ```
    Then log in with e.g. `admin@loanflow.com` / `password123`.
 
-3. **Two hosts in the logs (custom domain + Vercel preview URL)**  
-   If you see both `agent-aggregator.site.skushagra...` and `ai-real-estate-agent-xxx-k...` in Vercel logs: the session cookie is set for **one** domain. After login, NextAuth redirects to `NEXTAUTH_URL + "/"`. If that’s a **different** domain than the one you’re on, the browser won’t send the cookie there, so you appear logged out.
-
-   **Fix:** Set `NEXTAUTH_URL` to the **single** URL you use to open the app (e.g. `https://agent-aggregator.site.skushagra.in`). Open the app **only** at that URL—not the Vercel preview URL. In Vercel, set `NEXTAUTH_URL` in the **Production** environment to your custom domain so production deployments use it; avoid testing login on preview deployments unless you set `NEXTAUTH_URL` for Preview to that preview URL.
-
-4. **NEXTAUTH_URL is correct but login still fails**  
-   In **Vercel → your project → Logs**, search for `[Auth]`. You’ll see one of:
-   - `[Auth] authorize: no user for email …` – no user with that email (wrong email or DB not seeded).
-   - `[Auth] authorize: user inactive …` – user exists but is inactive.
-   - `[Auth] authorize: invalid password for …` – wrong password.
-   - `[Auth] authorize error: …` – exception (e.g. DB connection). Fix the underlying error.
-
-   Also ensure **`AUTH_SECRET`** is set in Vercel (same value everywhere). If it’s missing or wrong, the session cookie won’t verify and you’ll appear logged out after redirect.
+3. **Login still fails**  
+   In **Vercel → Logs**, search for `[Auth]`. You'll see: no user for email, user inactive, invalid password, or an error. Ensure **`AUTH_SECRET`** is set in Vercel.
 
 ---
 
