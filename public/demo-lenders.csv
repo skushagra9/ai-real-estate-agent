@@ -1,0 +1,16 @@
+lender_name,contact_name,contact_email,contact_phone,specialties,geographic_coverage,min_loan_size,max_loan_size,lender_type
+First National Bank,Sarah Chen,sarah@firstnational.com,(800) 555-0101,"Multifamily, Retail, Office","TX, CA, FL, NY",$500K,$10MM,BANK
+Pacific Capital Lending,James Park,james@pacificcap.com,(800) 555-0102,"Multifamily, Mixed-Use, Industrial","CA, WA, OR, NV, AZ",$1MM,$50MM,DEBT_FUND
+SunBelt Credit Union,Maria Rodriguez,maria@sunbelt.org,(800) 555-0103,"Multifamily, Retail, Self-Storage","TX, FL, GA, SC, NC",$100K,$5MM,CREDIT_UNION
+Nationwide Mortgage Partners,David Wilson,david@nmp.com,(800) 555-0104,"Multifamily, Office, Industrial, Retail, Hospitality",Nationwide,$250K,$25MM,BANK
+Heritage Savings & Loan,Robert Taylor,rob@heritage.com,(800) 555-0105,"Multifamily, Mixed-Use, Retail","NY, NJ, CT, PA, MA",$200K,$3MM,BANK
+Liberty Bridge Capital,Anna Kim,anna@libertybridge.com,(800) 555-0106,"Multifamily, Hospitality, Office, Industrial",Nationwide,$2MM,$100MM,DEBT_FUND
+Midwest Commercial Finance,John Miller,john@midwestcf.com,(800) 555-0107,"Industrial, Retail, Office, Self-Storage","IL, IN, OH, MI, WI, MN, IA, MO",$500K,$15MM,BANK
+SBA Express Lenders,Patricia Brown,patricia@sbaexpress.com,(800) 555-0108,"Retail, Office, Industrial, Healthcare",Nationwide,$50K,$5MM,SBA_LENDER
+Rocky Mountain Investors,Steve Nelson,steve@rmtninv.com,(800) 555-0109,"Multifamily, Land, Hospitality","CO, UT, MT, WY, ID, NM",$1MM,$20MM,PRIVATE
+Southeast Lending Corp,Lisa White,lisa@selending.com,(800) 555-0110,"Multifamily, Retail, Self-Storage, Mixed-Use","FL, GA, AL, SC, NC, TN, VA",$300K,$8MM,BANK
+Capital City Mortgage,Jennifer Adams,jennifer@ccm.com,(800) 555-0111,"Office, Retail, Mixed-Use","DC, MD, VA",$500K,$12MM,BANK
+Texas Star Funding,Mark Garcia,mark@txstar.com,(800) 555-0112,"Multifamily, Industrial, Land","TX",$250K,$20MM,PRIVATE
+Golden State Capital,Amy Lee,amy@gscapital.com,(800) 555-0113,"Multifamily, Hospitality, Self-Storage","CA",$1MM,$30MM,DEBT_FUND
+Empire State Lending,Frank DeLuca,frank@empirelend.com,(800) 555-0114,"Office, Retail, Multifamily","NY, NJ",$500K,$15MM,BANK
+Great Lakes Finance,Susan Moore,susan@greatlakes.com,(800) 555-0115,"Industrial, Retail, Office","MI, OH, IN, WI",$200K,$8MM,BANK

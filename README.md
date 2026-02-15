@@ -1,36 +1,198 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LoanFlow — Commercial Loan Referral Platform
 
-## Getting Started
+A full-stack platform for managing commercial loan referrals between **partners** (real estate agents, brokers), a **loan broker admin**, and **borrowers**. Built for the Agent Integrator Phase 2 deliverable.
 
-First, run the development server:
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router) + TypeScript
+- **Database:** PostgreSQL (Prisma 7 + `@prisma/adapter-pg`)
+- **Auth:** NextAuth v5 (Credentials, JWT with `role` + `partnerId`)
+- **UI:** Tailwind CSS + shadcn/ui
+- **Email:** Resend (transactional emails)
+- **Deployment:** PostgreSQL on **Railway**, app on **Vercel**
+
+## Features
+
+### Partner Portal
+- Self-service signup and login
+- Multi-step deal submission (borrower info → deal details → notes)
+- Dashboard with deal tracking and commission visibility
+- Deal detail with timeline
+
+### Admin Dashboard
+- Pipeline overview with stage counts and metrics (pipeline value, gross revenue, partner payables)
+- Deal management with stage transitions (Submitted → In Review → Accepted → Lender Placed → Term Sheet → Closing → Closed)
+- Lender database with CSV import
+- Smart lender matching by state, loan amount, and property type
+- Notes with visibility (Internal / Partner / Borrower)
+- Commission tracking and "Mark Paid"
+- Partner management
+
+### Borrower Status
+- Token-based public page (no login): `/status/[token]`
+- Simplified status display; link emailed on deal creation and resend from admin
+
+---
+
+## Getting Started (Local)
+
+### Prerequisites
+- Node.js 18+
+- pnpm (or npm)
+- PostgreSQL 15+ (or Docker for local DB)
+
+### Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# 1. Clone and install
+git clone <repo-url>
+cd ai-real-estate-agent
+pnpm install
+
+# 2. Environment
+cp .env.example .env
+# Edit .env: set DATABASE_URL, AUTH_SECRET, NEXTAUTH_URL (e.g. http://localhost:3000)
+
+# 3. Database
+pnpm exec prisma migrate deploy
+# Optional: seed demo data
+pnpm run db:seed
+
+# 4. Run
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment Variables
 
-## Learn More
+| Variable | Required | Where to set | Description |
+|----------|----------|--------------|-------------|
+| `DATABASE_URL` | Yes | Railway (Postgres) → Vercel | PostgreSQL connection URL |
+| `AUTH_SECRET` | Yes | Vercel | NextAuth secret (`openssl rand -base64 32`) |
+| `NEXTAUTH_URL` | Yes (prod) | Vercel | App URL (e.g. `https://your-app.vercel.app`) |
+| `RESEND_API_KEY` | No | Vercel | Resend API key; if missing, emails are skipped |
+| `RESEND_FROM_ADDRESS` | No | Vercel | Sender for emails (e.g. `LoanFlow <noreply@yourdomain.com>`) |
+| `EMAIL_APP_URL` | No | Vercel | Public URL for links in emails (recommended in prod) |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 1. PostgreSQL on Railway
+- Create a new project → Add **PostgreSQL**.
+- Copy the **connection URL** (e.g. `postgresql://...`).
+- Use this as `DATABASE_URL` in Vercel.
 
-## Deploy on Vercel
+### 2. App on Vercel
+- Import the GitHub repo.
+- **Build command:** `pnpm build` (or `npm run build`).
+- **Output:** Next.js default (`.next`).
+- **Environment variables:** Add all variables above. Set `NEXTAUTH_URL` to your Vercel deployment URL (e.g. `https://your-app.vercel.app`).
+- After first deploy, run migrations against production DB:
+  ```bash
+  DATABASE_URL="<railway-postgres-url>" pnpm exec prisma migrate deploy
+  ```
+- Optional: run seed once for demo users and sample data:
+  ```bash
+  DATABASE_URL="<railway-postgres-url>" pnpm run db:seed
+  ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Demo Credentials
+
+Use these to test all flows **without signing up**. (Seeded by `pnpm run db:seed`.)
+
+| Role | Email | Password |
+|------|--------|----------|
+| **Admin** | admin@loanflow.com | password123 |
+| Partner | jane@kw.com | password123 |
+| Partner | tom@remax.com | password123 |
+| Partner | sara@cb.com | password123 |
+| Partner | mike@exp.com | password123 |
+| Partner | lisa@century21.com | password123 |
+
+**Borrower flow:** Create a deal as a partner (or use an existing deal). The borrower receives an email with the status link, or copy the link from the deal detail in admin (`/status/<token>`).
+
+---
+
+## How to Test User Flows
+
+1. **Admin**
+   - Log in as `admin@loanflow.com` → redirects to `/admin/dashboard`.
+   - Pipeline: view deals, filter by stage, open a deal.
+   - Deal detail: change stage, add notes (internal/partner/borrower), assign lender, mark commission paid.
+   - Lenders: browse, search, import CSV (`public/demo-lenders.csv`).
+   - Partners: list and edit partners.
+   - Commissions: filter by status, mark paid.
+
+2. **Partner**
+   - Log in as `jane@kw.com` → redirects to `/partner/dashboard`.
+   - Submit a new deal: `/partner/deals/new` (3 steps).
+   - Deal list and detail: see timeline and estimated commission.
+   - Commissions: view earned, pending, projected.
+
+3. **Borrower**
+   - No login. Open status link: `/status/<token>` (get token from deal in admin or from borrower email).
+   - See deal summary, stage, and borrower-visible updates.
+
+---
+
+## Phase 1 Questions & Decisions (Marked)
+
+These were open questions or decisions from Phase 1 planning; documented here for the client.
+
+- **Hosting:** Phase 1 plan mentioned Neon for Postgres; **we use Railway for Postgres** and Vercel for the app. Same capabilities; Railway was chosen for this deployment.
+- **Notifications:** Phase 1 described a future “scalability phase” with a **pub/sub pipeline (e.g. Redis/RabbitMQ)** to move email off the request path. **We are not using a Redis (or other) message pipeline for this MVP.** Emails are sent synchronously after state changes. This is manageable at current scale and **not required for this basic MVP**; we can ship to production as-is and introduce a queue later if needed.
+- **Borrower emails:** Borrower gets status-link email on deal creation and can be notified on stage change / lender assigned when “Enable client tracking” is on and borrower email is set.
+- **Admin accounts:** Admin users are created via seed or manually in the DB; no public admin signup.
+
+---
+
+## Deviations from Phase 1 Plan
+
+- **Database provider:** Plan suggested Neon; production uses **Railway** for PostgreSQL.
+- **Prisma:** Implemented with **Prisma 7** and `@prisma/adapter-pg`; datasource URL is in `prisma.config.ts`, not in `schema.prisma`.
+- **Async notifications:** No Redis/pub-sub in this build; **sync email in request path** only. Documented above under Phase 1 questions.
+- Any other small UX or routing differences from the written plan are minor and do not change scope or core flows.
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── admin/          # Admin (dashboard, deals, lenders, partners, commissions)
+│   ├── partner/        # Partner (dashboard, deals, commissions)
+│   ├── login/, signup/
+│   ├── status/[token]/ # Borrower status (public)
+│   └── api/            # Auth, lender search, etc.
+├── components/
+├── lib/
+│   ├── auth.ts         # NextAuth config
+│   ├── prisma.ts       # Prisma client (adapter-pg)
+│   ├── email.ts        # Resend
+│   └── actions/        # Server actions (deals, commissions)
+└── middleware.ts       # Auth + role-based route protection
+prisma/
+├── schema.prisma
+├── prisma.config.ts    # CLI datasource (Prisma 7)
+├── seed.ts
+└── migrations/
+```
+
+## Reference Docs
+
+- **Phase 1 scope & technical plan:** `PHASE1-PLAN.md`
+- **Architecture & flows:** `ARCHITECTURE.md`
+
+---
+
+## Time Spent (Phase 2)
+
+_Optional: fill in before submission._  
+e.g. “Phase 2 build: ~X hours. Deviations and rationale are in README.”

@@ -1,0 +1,326 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  ADMIN
+  PARTNER
+}
+
+enum DealStage {
+  SUBMITTED
+  UNDER_REVIEW
+  PROCESSING
+  QUOTING
+  QUOTED
+  ACCEPTED
+  UNDERWRITING
+  APPROVED
+  CLOSING
+  CLOSED
+  DECLINED
+  LOST
+}
+
+enum LoanType {
+  PERMANENT_MORTGAGE
+  BRIDGE
+  LAND
+  CONSTRUCTION
+  SBA
+  OTHER
+}
+
+enum TransactionType {
+  ACQUISITION
+  REFINANCE
+}
+
+enum LoanPosition {
+  FIRST_MORTGAGE
+  SUBORDINATE
+}
+
+enum Occupancy {
+  OWNER_OCCUPIED
+  INVESTMENT
+}
+
+enum PropertyType {
+  MULTIFAMILY
+  RETAIL
+  OFFICE
+  INDUSTRIAL
+  MIXED_USE
+  HOSPITALITY
+  LAND
+  SELF_STORAGE
+  HEALTHCARE
+  SHORT_TERM_RENTALS
+  OTHER
+}
+
+enum DealEventType {
+  STAGE_CHANGE
+  NOTE
+  LENDER_ASSIGNED
+  LENDER_REMOVED
+  COMMISSION_UPDATE
+  SYSTEM
+}
+
+enum EventVisibility {
+  INTERNAL
+  PARTNER
+  BORROWER
+}
+
+enum DealLenderStatus {
+  ASSIGNED
+  CONTACTED
+  CONSIDERED
+  PASSED
+}
+
+enum CommissionStatus {
+  ESTIMATED
+  CONFIRMED
+  PAID
+}
+
+// ============================================================
+// CORE ENTITIES
+// ============================================================
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole
+  partnerId    String?
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  partner       Partner?    @relation(fields: [partnerId], references: [id])
+  assignedDeals Deal[]      @relation("AssignedAdmin")
+  dealEvents    DealEvent[]
+
+  @@index([email])
+  @@index([role])
+  @@index([partnerId])
+}
+
+model Partner {
+  id                   String   @id @default(cuid())
+  companyName          String
+  contactName          String
+  email                String   @unique
+  phone                String?
+  defaultCommissionPct Float    @default(0.25)
+  isActive             Boolean  @default(true)
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  users       User[]
+  deals       Deal[]
+  commissions Commission[]
+
+  @@index([email])
+  @@index([isActive])
+}
+
+model Borrower {
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String
+  phone        String
+  businessName String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  deals Deal[]
+
+  @@index([email])
+  @@index([businessName])
+}
+
+model Deal {
+  id              String   @id @default(cuid())
+  referenceNumber String   @unique
+
+  partnerId        String
+  borrowerId       String
+  assignedAdminId  String?
+  assignedLenderId String?
+
+  // Step 1: Loan Info
+  loanType          LoanType
+  transactionType   TransactionType
+  loanPosition      LoanPosition     @default(FIRST_MORTGAGE)
+  propertyType      PropertyType     @default(OTHER)
+
+  // Step 2: Property Details
+  occupancy         Occupancy        @default(INVESTMENT)
+  propertyAddress   String?
+
+  // Step 3: Financial Details
+  purchasePrice     Float?
+  noi               Float?
+  noiNotAvailable   Boolean          @default(false)
+  signedPurchaseAgreement Boolean    @default(false)
+  inPlaceOccupancy  Float?
+
+  // Step 4: Loan Details
+  loanAmountRequested Float
+  loanAmountClosed    Float?
+  targetLtv           Float?
+  estimatedCloseDate  DateTime?
+  recourseAcceptance  Boolean        @default(true)
+  partnerCompensation Float?
+
+  // Legacy / compatibility
+  propertyState     String           @default("") @db.VarChar(50)
+  propertyCity      String?
+
+  // Pipeline
+  stage           DealStage   @default(SUBMITTED)
+  stageChangedAt  DateTime    @default(now())
+  declineReason   String?
+  lostReason      String?
+
+  partnerNotes   String?
+  referralSource String?
+
+  // Client tracking
+  enableClientTracking Boolean @default(true)
+  borrowerAccessToken  String  @unique @default(cuid())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partner        Partner      @relation(fields: [partnerId], references: [id])
+  borrower       Borrower     @relation(fields: [borrowerId], references: [id])
+  assignedAdmin  User?        @relation("AssignedAdmin", fields: [assignedAdminId], references: [id])
+  assignedLender Lender?      @relation(fields: [assignedLenderId], references: [id])
+  events         DealEvent[]
+  dealLenders    DealLender[]
+  commission     Commission?
+
+  @@index([partnerId])
+  @@index([stage])
+  @@index([assignedAdminId])
+  @@index([assignedLenderId])
+  @@index([propertyState])
+  @@index([createdAt])
+  @@index([borrowerAccessToken])
+  @@index([stage, createdAt])
+  @@index([partnerId, stage])
+}
+
+model DealEvent {
+  id         String          @id @default(cuid())
+  dealId     String
+  actorId    String?
+
+  eventType  DealEventType
+  fromStage  DealStage?
+  toStage    DealStage?
+  note       String?
+  visibility EventVisibility @default(INTERNAL)
+
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+
+  deal  Deal  @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([dealId, createdAt])
+  @@index([dealId, visibility])
+}
+
+model Lender {
+  id               String   @id @default(cuid())
+  name             String
+  contactName      String?
+  contactEmail     String?
+  contactPhone     String?
+  website          String?
+
+  minLoanAmount    Float?
+  maxLoanAmount    Float?
+  coverageStates   String[]
+  propertyTypes    String[]
+  transactionTypes String[]
+  lenderType       String?
+
+  notes     String?
+  isActive  Boolean  @default(true)
+
+  rawImportData Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedDeals Deal[]
+  dealLenders   DealLender[]
+
+  @@index([isActive])
+  @@index([minLoanAmount])
+  @@index([maxLoanAmount])
+}
+
+model DealLender {
+  id       String           @id @default(cuid())
+  dealId   String
+  lenderId String
+  status   DealLenderStatus @default(CONSIDERED)
+  notes    String?
+  createdAt DateTime        @default(now())
+
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  lender Lender @relation(fields: [lenderId], references: [id])
+
+  @@unique([dealId, lenderId])
+  @@index([dealId])
+  @@index([lenderId])
+}
+
+model Commission {
+  id               String           @id @default(cuid())
+  dealId           String           @unique
+  partnerId        String
+
+  status           CommissionStatus @default(ESTIMATED)
+  grossCommission  Float?
+  partnerPct       Float
+  partnerAmount    Float?
+  closedLoanAmount Float?
+
+  notes  String?
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deal    Deal    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  partner Partner @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
+  @@index([status])
+  @@index([partnerId, status])
+}
