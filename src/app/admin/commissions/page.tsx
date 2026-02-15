@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/constants";
 import { MarkPaidButton } from "@/components/admin/mark-paid-button";
+import { Commission } from "@prisma/client";
 
 export default async function AdminCommissions() {
   const commissions = await prisma.commission.findMany({
@@ -14,14 +15,14 @@ export default async function AdminCommissions() {
   });
 
   const grossRevenue = commissions
-    .filter((c) => c.status === "CONFIRMED" || c.status === "PAID")
-    .reduce((s, c) => s + (c.grossCommission || 0), 0);
+    .filter((c: Commission) => c.status === "CONFIRMED" || c.status === "PAID")
+    .reduce((s: number, c: Commission) => s + (c.grossCommission || 0), 0);
   const totalPaid = commissions
-    .filter((c) => c.status === "PAID")
-    .reduce((s, c) => s + (c.partnerAmount || 0), 0);
+    .filter((c: Commission) => c.status === "PAID")
+    .reduce((s: number, c: Commission) => s + (c.partnerAmount || 0), 0);
   const totalPending = commissions
-    .filter((c) => c.status === "CONFIRMED")
-    .reduce((s, c) => s + (c.partnerAmount || 0), 0);
+    .filter((c: Commission) => c.status === "CONFIRMED")
+    .reduce((s: number, c: Commission) => s + (c.partnerAmount || 0), 0);
 
   return (
     <div className="space-y-6">

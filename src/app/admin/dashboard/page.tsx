@@ -15,12 +15,12 @@ export default async function AdminDashboard() {
   ]);
 
   const activeDeals = deals.filter(
-    (d: Deal) => !["CLOSED", "DECLINED", "LOST"].includes(d.stage)
+    (d: any) => !["CLOSED", "DECLINED", "LOST"].includes(d.stage)
   );
   const needsAttention = deals.filter(
-    (d: Deal) => d.stage === "SUBMITTED" || d.stage === "UNDER_REVIEW"
+    (d: any) => d.stage === "SUBMITTED" || d.stage === "UNDER_REVIEW"
   );
-  const pipelineValue = activeDeals.reduce((s: number, d: Deal) => s + d.loanAmountRequested, 0);
+  const pipelineValue = activeDeals.reduce((s: number, d: any) => s + d.loanAmountRequested, 0);
 
   const grossRevenue = commissions
     .filter((c: Commission) => c.status === "CONFIRMED" || c.status === "PAID")
@@ -66,7 +66,7 @@ export default async function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {needsAttention.map((deal) => {
+                  {needsAttention.map((deal: any) => {
                     const stageInfo = getStageInfo(deal.stage);
                     return (
                       <tr key={deal.id} className="hover:bg-slate-50/50 transition-colors">
