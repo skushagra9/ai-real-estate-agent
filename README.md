@@ -72,7 +72,7 @@ Open [http://localhost:3000](http://localhost:3000).
 |----------|----------|--------------|-------------|
 | `DATABASE_URL` | Yes | Railway (Postgres) → Vercel | PostgreSQL connection URL |
 | `AUTH_SECRET` | Yes | Vercel | NextAuth secret (`openssl rand -base64 32`) |
-| `NEXTAUTH_URL` | Local only | .env | **Set to `http://localhost:3000` for local dev.** In Vercel production **do not set** (leave it unset). When unset, NextAuth uses the request host so the session cookie matches the URL you’re on—login then works from your custom domain and from any preview URL. If you set it in prod, it must exactly match the single URL users visit. |
+| `NEXTAUTH_URL` | Yes (prod) | .env / Vercel | **Set to `http://localhost:3000` for local dev.** In Vercel production **do not set** (leave it unset). When unset, NextAuth uses the request host so the session cookie matches the URL you’re on—login then works from your custom domain and from any preview URL. If you set it in prod, it must exactly match the single URL users visit. |
 | `RESEND_API_KEY` | No | Vercel | Resend API key; if missing, emails are skipped |
 | `RESEND_FROM_ADDRESS` | No | Vercel | Sender for emails (e.g. `LoanFlow <noreply@yourdomain.com>`) |
 | `EMAIL_APP_URL` | No | Vercel | Public URL for links in emails (recommended in prod) |
@@ -90,7 +90,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - Import the GitHub repo.
 - **Build command:** `pnpm build` (or `npm run build`). The build script runs `prisma generate`, then `prisma migrate deploy` (so migrations apply to your production DB on every deploy), then `next build`.
 - **Output:** Next.js default (`.next`).
-- **Environment variables:** Add `DATABASE_URL` (from Railway), `AUTH_SECRET`, and the rest. **Do not set `NEXTAUTH_URL` in Vercel** so the app uses the request host and login works from your custom domain and preview URLs. Use `NEXTAUTH_URL` only in local `.env` (`http://localhost:3000`).
+- **Environment variables:** Add `DATABASE_URL` (from Railway), `AUTH_SECRET`, and **`NEXTAUTH_URL`** set to your production URL (e.g. `https://agent-aggregator.site.skushagra.in`). This avoids redirect/cookie weirdness and prevents login from redirecting back to `/login`.
 - **Optional:** Run seed once for demo users and sample data (after first successful deploy):
   ```bash
   DATABASE_URL="<railway-postgres-url>" pnpm run db:seed
@@ -104,16 +104,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 **Solid fix:**
 
-1. **In Vercel, remove `NEXTAUTH_URL`** (delete it from Environment Variables if present). When `NEXTAUTH_URL` is **not set**, NextAuth uses the **request host** for the session cookie. The app sets **`trustHost: true`** so that behind Vercel's proxy the correct host (and thus cookie domain) is used—login then works from your custom domain and preview URLs. Keep `NEXTAUTH_URL` only in **local** `.env` as `http://localhost:3000`. Redeploy after any env or code change.
-
-2. **No users in the database**  
+1. **Set `NEXTAUTH_URL` in Vercel** to your exact production URL (e.g. `https://agent-aggregator.site.skushagra.in`). If it's missing or wrong, NextAuth can default the post-login redirect to the current page (`/login`), so you end up back on login. The app also forces redirect away from `/login` in the redirect callback and sends an explicit `callbackUrl` from the login form.
+2. **Ensure `AUTH_SECRET`** is set in Vercel (same value everywhere).
+3. **No users in the database**  
    Run the seed once against the production DB (same `DATABASE_URL` as in Vercel):
    ```bash
    DATABASE_URL="<your-railway-url>" pnpm run db:seed
    ```
    Then log in with e.g. `admin@loanflow.com` / `password123`.
 
-3. **Login still fails**  
+4. **Login still fails**  
    In **Vercel → Logs**, search for `[Auth]`. You'll see: no user for email, user inactive, invalid password, or an error. Ensure **`AUTH_SECRET`** is set in Vercel.
 
 ---

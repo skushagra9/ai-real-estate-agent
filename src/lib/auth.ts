@@ -64,6 +64,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
+    redirect({ url, baseUrl }) {
+      // Never redirect back to login after sign-in (avoids callbackUrl defaulting to current page).
+      const resolved = url.startsWith("/") ? `${baseUrl}${url}` : url;
+      if (resolved.includes("/login") || resolved.includes("/signin")) return `${baseUrl}/`;
+      if (new URL(resolved).origin === baseUrl) return resolved;
+      return `${baseUrl}/`;
+    },
     async jwt({ token, user }) {
       if (user) {
         const u = user as { role?: "ADMIN" | "PARTNER"; partnerId?: string | null };
@@ -89,5 +96,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  cookies: {
+    sessionToken: {
+      options: {
+        path: "/",
+        sameSite: "lax",
+        // Do not set domain so the cookie is for the exact request host (fixes prod behind proxy).
+      },
+    },
   },
 });
