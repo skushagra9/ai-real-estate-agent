@@ -118,8 +118,13 @@ Two common causes:
    ```
    Then log in with e.g. `admin@loanflow.com` / `password123`.
 
-3. **NEXTAUTH_URL is correct but login still fails**  
-   The app logs why sign-in was rejected. In **Vercel → your project → Logs**, filter or search for `[Auth]`. You’ll see one of:
+3. **Two hosts in the logs (custom domain + Vercel preview URL)**  
+   If you see both `agent-aggregator.site.skushagra...` and `ai-real-estate-agent-xxx-k...` in Vercel logs: the session cookie is set for **one** domain. After login, NextAuth redirects to `NEXTAUTH_URL + "/"`. If that’s a **different** domain than the one you’re on, the browser won’t send the cookie there, so you appear logged out.
+
+   **Fix:** Set `NEXTAUTH_URL` to the **single** URL you use to open the app (e.g. `https://agent-aggregator.site.skushagra.in`). Open the app **only** at that URL—not the Vercel preview URL. In Vercel, set `NEXTAUTH_URL` in the **Production** environment to your custom domain so production deployments use it; avoid testing login on preview deployments unless you set `NEXTAUTH_URL` for Preview to that preview URL.
+
+4. **NEXTAUTH_URL is correct but login still fails**  
+   In **Vercel → your project → Logs**, search for `[Auth]`. You’ll see one of:
    - `[Auth] authorize: no user for email …` – no user with that email (wrong email or DB not seeded).
    - `[Auth] authorize: user inactive …` – user exists but is inactive.
    - `[Auth] authorize: invalid password for …` – wrong password.
