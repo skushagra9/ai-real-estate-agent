@@ -72,7 +72,7 @@ Open [http://localhost:3000](http://localhost:3000).
 |----------|----------|--------------|-------------|
 | `DATABASE_URL` | Yes | Railway (Postgres) → Vercel | PostgreSQL connection URL |
 | `AUTH_SECRET` | Yes | Vercel | NextAuth secret (`openssl rand -base64 32`) |
-| `NEXTAUTH_URL` | Yes (prod) | Vercel | App URL (e.g. `https://your-app.vercel.app`) |
+| `NEXTAUTH_URL` | Yes (prod) | Vercel | **Must be the exact URL users visit** (e.g. `https://agent-aggregator.site.skushagra.in` or `https://your-app.vercel.app`). Used for redirects and session cookies; if it doesn’t match the browser URL, login will redirect back to `/login`. |
 | `RESEND_API_KEY` | No | Vercel | Resend API key; if missing, emails are skipped |
 | `RESEND_FROM_ADDRESS` | No | Vercel | Sender for emails (e.g. `LoanFlow <noreply@yourdomain.com>`) |
 | `EMAIL_APP_URL` | No | Vercel | Public URL for links in emails (recommended in prod) |
@@ -95,6 +95,37 @@ Open [http://localhost:3000](http://localhost:3000).
   ```bash
   DATABASE_URL="<railway-postgres-url>" pnpm run db:seed
   ```
+
+---
+
+## Troubleshooting: “After login I’m sent back to the login page”
+
+Two common causes:
+
+1. **Wrong or missing `NEXTAUTH_URL`**  
+   NextAuth uses `NEXTAUTH_URL` as the app’s canonical URL. It’s used for:
+   - **Redirects** after sign-in (e.g. to `/` then dashboard).
+   - **Session cookie** (domain/path). If the cookie is set for a different host than the one you’re visiting, the browser won’t send it, so the app sees no session and shows login again.
+
+   **Fix:** In Vercel → Project → Settings → Environment Variables, set `NEXTAUTH_URL` to the **exact** URL people use to open the app (no trailing slash), e.g. `https://agent-aggregator.site.skushagra.in`. If you use a custom domain, use that; if you use the default Vercel URL, use that. Redeploy after changing.
+
+2. **No users in the database**  
+   If the production DB was never seeded, there are no users to log in as.
+
+   **Fix:** Run the seed once against the production DB (same `DATABASE_URL` as in Vercel):
+   ```bash
+   DATABASE_URL="<your-railway-url>" pnpm run db:seed
+   ```
+   Then log in with e.g. `admin@loanflow.com` / `password123`.
+
+3. **NEXTAUTH_URL is correct but login still fails**  
+   The app logs why sign-in was rejected. In **Vercel → your project → Logs**, filter or search for `[Auth]`. You’ll see one of:
+   - `[Auth] authorize: no user for email …` – no user with that email (wrong email or DB not seeded).
+   - `[Auth] authorize: user inactive …` – user exists but is inactive.
+   - `[Auth] authorize: invalid password for …` – wrong password.
+   - `[Auth] authorize error: …` – exception (e.g. DB connection). Fix the underlying error.
+
+   Also ensure **`AUTH_SECRET`** is set in Vercel (same value everywhere). If it’s missing or wrong, the session cookie won’t verify and you’ll appear logged out after redirect.
 
 ---
 

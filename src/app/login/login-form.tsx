@@ -17,7 +17,13 @@ export function LoginForm() {
   const searchParams = useSearchParams();
 
   const callbackError = searchParams.get("error");
-  const displayError = error || (callbackError === "CredentialsSignin" ? "Invalid email or password" : "");
+  const displayError =
+    error ||
+    (callbackError === "CredentialsSignin"
+      ? "Invalid email or password"
+      : callbackError
+        ? "Login failed. Check Vercel logs for [Auth] messages or try again."
+        : "");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
