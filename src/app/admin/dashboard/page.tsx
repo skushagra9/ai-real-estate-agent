@@ -66,7 +66,7 @@ export default async function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {needsAttention.map((deal: Deal) => {
+                  {needsAttention.map((deal) => {
                     const stageInfo = getStageInfo(deal.stage);
                     return (
                       <tr key={deal.id} className="hover:bg-slate-50/50 transition-colors">
