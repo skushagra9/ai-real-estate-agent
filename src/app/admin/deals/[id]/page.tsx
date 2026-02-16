@@ -93,7 +93,11 @@ export default async function AdminDealDetail({
 
       {/* Stage actions */}
       {allowedTransitions.length > 0 && (
-        <StageActions dealId={deal.id} currentStage={deal.stage} transitions={allowedTransitions} />
+        <StageActions
+          dealId={deal.id}
+          currentStage={deal.stage}
+          transitions={allowedTransitions}
+        />
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -105,7 +109,7 @@ export default async function AdminDealDetail({
               <h2 className="text-sm font-semibold text-slate-700">Deal Details</h2>
             </div>
             <div className="p-5">
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                 <Field label="Loan Type" value={loanTypeLabel} />
                 <Field label="Transaction" value={transactionLabel} />
                 <Field label="Loan Position" value={loanPositionLabel} />
@@ -138,16 +142,18 @@ export default async function AdminDealDetail({
             <div className="px-5 py-3 border-b border-slate-100">
               <h2 className="text-sm font-semibold text-slate-700">Borrower</h2>
             </div>
-            <div className="p-5 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                <span className="text-sm font-semibold text-slate-500">
-                  {deal.borrower.firstName[0]}{deal.borrower.lastName?.[0] || ""}
-                </span>
-              </div>
-              <div className="text-sm flex-1 min-w-0">
-                <p className="font-medium text-slate-900">{deal.borrower.firstName} {deal.borrower.lastName}</p>
-                <p className="text-slate-500">{deal.borrower.email}</p>
-                {deal.borrower.phone && <p className="text-slate-400">{deal.borrower.phone}</p>}
+            <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-semibold text-slate-500">
+                    {deal.borrower.firstName[0]}{deal.borrower.lastName?.[0] || ""}
+                  </span>
+                </div>
+                <div className="text-sm min-w-0">
+                  <p className="font-medium text-slate-900">{deal.borrower.firstName} {deal.borrower.lastName}</p>
+                  <p className="text-slate-500 truncate">{deal.borrower.email}</p>
+                  {deal.borrower.phone && <p className="text-slate-400">{deal.borrower.phone}</p>}
+                </div>
               </div>
               {trackingUrl && (
                 <a
